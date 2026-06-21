@@ -30,6 +30,7 @@ class _BoardState extends State<Board> {
   double? _puzzleHeight;
   int? _nPiecesWidth;
   int? _nPiecesHeight;
+  bool _isComplete = false;
 
   @override
   void initState() {
@@ -183,39 +184,82 @@ class _BoardState extends State<Board> {
       }
     }
 
-    return Container(
-      color: widget.backgroundColor,
-      child: InteractiveViewer(
-        transformationController: _transformationController,
-        minScale: 0.1,
-        maxScale: 5.0,
-        boundaryMargin: const EdgeInsets.all(double.infinity),
-        constrained: false, // Allows the child to be larger than the viewport
-        child: Container(
-          width: canvasWidth,
-          height: canvasHeight,
+    return Stack(
+      children: [
+        Container(
           color: widget.backgroundColor,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: allPieces.map((data) {
-              return Positioned(
-                // Translate world coordinates to local Stack coordinates
-                left: data.position.dx - minX + buffer,
-                top: data.position.dy - minY + buffer,
-                child: Piece(
-                  data: data,
-                  puzzleWidth: _puzzleWidth!,
-                  puzzleHeight: _puzzleHeight!,
-                  imagePath: _imagePath!,
-                  onDrag: (delta) => _handleDrag(data, delta),
-                  onDragEnd: () => _handleDragEnd(data),
-                  onDoubleTap: () => _handleDoubleTap(data),
-                ),
-              );
-            }).toList(),
+          child: InteractiveViewer(
+            transformationController: _transformationController,
+            minScale: 0.1,
+            maxScale: 5.0,
+            boundaryMargin: const EdgeInsets.all(double.infinity),
+            constrained: false, // Allows the child to be larger than the viewport
+            child: Container(
+              width: canvasWidth,
+              height: canvasHeight,
+              color: widget.backgroundColor,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: allPieces.map((data) {
+                  return Positioned(
+                    // Translate world coordinates to local Stack coordinates
+                    left: data.position.dx - minX + buffer,
+                    top: data.position.dy - minY + buffer,
+                    child: Piece(
+                      data: data,
+                      puzzleWidth: _puzzleWidth!,
+                      puzzleHeight: _puzzleHeight!,
+                      imagePath: _imagePath!,
+                      onDrag: (delta) => _handleDrag(data, delta),
+                      onDragEnd: () => _handleDragEnd(data),
+                      onDoubleTap: () => _handleDoubleTap(data),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
           ),
         ),
-      ),
+        if (_isComplete)
+          Positioned(
+            bottom: 32,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.7),
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(color: Colors.white24),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.check_circle, color: Colors.greenAccent),
+                    const SizedBox(width: 12),
+                    const Text(
+                      "Puzzle Complete!",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text(
+                        "Back to Home",
+                        style: TextStyle(color: Colors.blueAccent),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -253,10 +297,11 @@ class _BoardState extends State<Board> {
 
       PuzzleEngine.handleSnapping(movingCluster, clusters!);
 
-      if (PuzzleEngine.isPuzzleComplete(movingCluster, _nPiecesWidth!, _nPiecesHeight!)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Puzzle Complete!")),
-        );
+      // Re-find the cluster after snapping as it might have been merged
+      final updatedCluster = clusters!.firstWhere((c) => c.contains(draggedPiece));
+
+      if (PuzzleEngine.isPuzzleComplete(updatedCluster, _nPiecesWidth!, _nPiecesHeight!)) {
+        _isComplete = true;
       }
     });
   }
