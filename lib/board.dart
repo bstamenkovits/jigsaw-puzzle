@@ -2,7 +2,13 @@ import 'package:flutter/material.dart';
 import 'piece.dart';
 
 class Board extends StatefulWidget {
-  const Board({super.key});
+  final int nPiecesWidth;
+  final int nPiecesHeight;
+  const Board({
+    super.key,
+    this.nPiecesWidth = 2,
+    this.nPiecesHeight = 2,
+  });
 
   @override
   State<Board> createState() => _BoardState();
@@ -10,12 +16,23 @@ class Board extends StatefulWidget {
 
 class _BoardState extends State<Board> {
   /// Each list inside this list represents a "Cluster" of snapped pieces.
-  final List<List<PieceData>> clusters = [
-    [PieceData(id: "piece_1", position: const Offset(1000, 1000))],
-    [PieceData(id: "piece_2", position: const Offset(1200, 1000))],
-    [PieceData(id: "piece_3", position: const Offset(1000, 1150))],
-    [PieceData(id: "piece_4", position: const Offset(1200, 1150))],
-  ];
+  late final List<List<PieceData>> clusters;
+
+  @override
+  void initState() {
+    super.initState();
+    clusters = [];
+    for (int i = 0; i < widget.nPiecesHeight; i++) {
+      for (int j = 0; j < widget.nPiecesWidth; j++) {
+        clusters.add([
+          PieceData(
+            id: "piece_${i * widget.nPiecesWidth + j + 1}",
+            position: Offset(1000.0 + j * 200.0, 1000.0 + i * 150.0),
+          )
+        ]);
+      }
+    }
+  }
 
   /// Distance within which two pieces/clusters snap together
   static const double snapThreshold = 20.0;

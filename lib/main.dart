@@ -16,7 +16,10 @@ class MyApp extends StatelessWidget {
       home: Scaffold(
         backgroundColor: Colors.blue[900], // App background
         body: const Center(
-          child: Board(),
+          child: Board(
+            nPiecesWidth: 3,
+            nPiecesHeight: 3,
+          ),
         ),
       ),
     );
