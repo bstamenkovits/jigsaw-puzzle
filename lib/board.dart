@@ -231,7 +231,57 @@ class _BoardState extends State<Board> {
 
       // Apply snapping logic
       _handleSnapping(movingCluster);
+
+      // Check if the puzzle is complete
+      if (_isPuzzleComplete(movingCluster)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Puzzle Complete!")),
+        );
+      }
     });
+  }
+
+  /// Checks if the given cluster represents a completed puzzle.
+  ///
+  /// Given a cluster, the method takes the first piece in the cluster, and then
+  /// computes the expected position of every other piece relative to itself.
+  ///
+  /// The expected position can be determined by the index (idx) of each piece
+  /// as the idx is assigned to a piece in the constructor of Board based on the
+  /// number of pieces in the width and length of the puzzle.
+  ///
+  /// Returns `true` if all pieces are in their correct position relative to
+  /// each other.
+  bool _isPuzzleComplete(List<PieceData> cluster) {
+    if (cluster.length != widget.nPiecesWidth * widget.nPiecesHeight) {
+      return false;
+    }
+
+    // Pick the first piece to establish the expected "puzzle origin"
+    final firstPiece = cluster.first;
+    final firstIdx = int.parse(firstPiece.id.split('_').last) - 1;
+    final firstGridX = firstIdx % widget.nPiecesWidth;
+    final firstGridY = firstIdx ~/ widget.nPiecesWidth;
+
+    final puzzleOrigin = firstPiece.position -
+        Offset(firstGridX * firstPiece.width, firstGridY * firstPiece.height);
+
+    // Verify each piece in the cluster is in its correct grid position relative to the origin
+    for (var piece in cluster) {
+      final idx = int.parse(piece.id.split('_').last) - 1;
+      final gridX = idx % widget.nPiecesWidth;
+      final gridY = idx ~/ widget.nPiecesWidth;
+
+      final expectedPosition = puzzleOrigin +
+          Offset(gridX * piece.width, gridY * piece.height);
+
+      // We allow a small epsilon for floating point comparison
+      if ((piece.position - expectedPosition).distance > 1.0) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
 
