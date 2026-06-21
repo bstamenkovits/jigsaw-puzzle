@@ -271,15 +271,15 @@ class _BoardState extends State<Board> {
   /// Given two anchors belonging to different clusters (A and B), snap the two
   /// clusters together if the anchors are close enough to one-another.
   bool _snapOperation(Offset anchorA, Offset anchorB, List<PieceData> clusterA, List<PieceData> clusterB, Offset delta) {
-    /// Check if two edges are (almost) touching
+    // Check if two edges are (almost) touching
     if ((anchorA - anchorB).distance < snapThreshold) {
 
-      /// Update the position of all pieces in Cluster A
+      // Update the position of all pieces in Cluster A
       for (var piece in clusterA) {
         piece.position += delta;
       }
 
-      /// Absorb clusterA into ClusterB
+      // Absorb clusterA into ClusterB
       clusterB.addAll(clusterA);
       clusters.remove(clusterA);
       return true;
