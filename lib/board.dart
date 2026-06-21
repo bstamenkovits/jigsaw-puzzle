@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'piece.dart';
 import 'puzzle_engine.dart';
@@ -57,8 +59,41 @@ class _BoardState extends State<Board> {
       final pieceHeight = puzzleHeight / nPiecesHeight;
 
       final List<List<PieceData>> newClusters = [];
+      final List<Offset> placedPositions = [];
+
+      final random = Random();
+      final x0 = 1000.0;
+      final y0 = 1000.0;
+      final num minDistance = 2 * pow(pow(max(pieceWidth, pieceHeight), 2), 0.5) * 1.1; //estimate for overlapping distance
+
       for (int i = 0; i < nPiecesHeight; i++) {
         for (int j = 0; j < nPiecesWidth; j++) {
+          bool tooClose = true;
+          Offset randomPos = Offset(x0, y0); // assign default value
+
+          for (int c=0; c<500; c++){
+            // assign a random position
+            double x = x0 + 2.5 * puzzleWidth * random.nextDouble();
+            double y = y0 + 2.5 * puzzleHeight * random.nextDouble();
+            randomPos = Offset(x, y);
+
+            // check if random position is not too close to other pieces
+            // if it is, nudge it away from the already placed position
+            tooClose = false;
+            for (final otherPos in placedPositions) {
+              Offset separation = randomPos - otherPos;
+              if (separation.distance < minDistance) {
+                randomPos += separation * 0.25; // nudge along separation axis
+                tooClose = true;
+                break;
+              }
+            }
+
+            // if the new position is far away enough from all other pieces
+            // we can use that position
+            if (!tooClose) { break; }
+          }
+
           newClusters.add([
             PieceData(
               id: "piece_${i * nPiecesWidth + j + 1}",
@@ -66,10 +101,11 @@ class _BoardState extends State<Board> {
               gridY: i,
               width: pieceWidth,
               height: pieceHeight,
-              // Scatter them a bit initially
-              position: Offset(1000.0 + j * (pieceWidth + 20), 1000.0 + i * (pieceHeight + 20)),
+              position: randomPos,
             )
           ]);
+
+          placedPositions.add(randomPos);
         }
       }
 
