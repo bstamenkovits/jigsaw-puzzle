@@ -6,12 +6,14 @@ class Board extends StatefulWidget {
   final int imageIdx;
   final int puzzleSize;
   final int difficulty;
+  final Color backgroundColor;
 
   const Board({
     super.key,
     this.imageIdx = 0,
     this.puzzleSize = 600,
     this.difficulty = 3,
+    this.backgroundColor = const Color(0xFF242424), // grey
   });
 
   @override
@@ -146,7 +148,7 @@ class _BoardState extends State<Board> {
     }
 
     return Container(
-      color: Colors.blue[900], // Matches Scaffold background
+      color: widget.backgroundColor,
       child: InteractiveViewer(
         transformationController: _transformationController,
         minScale: 0.1,
@@ -156,7 +158,7 @@ class _BoardState extends State<Board> {
         child: Container(
           width: canvasWidth,
           height: canvasHeight,
-          color: Colors.blue[900], // Matches everything else
+          color: widget.backgroundColor,
           child: Stack(
             clipBehavior: Clip.none,
             children: allPieces.map((data) {

@@ -5,6 +5,9 @@ void main() {
   runApp(const MyApp());
 }
 
+const backgroundColor = Color(0xFF1c1c1c);
+// const backgroundColor = Color(0xFFfcba03);
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -14,12 +17,13 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       home: Scaffold(
-        backgroundColor: Colors.blue[900], // App background
+        backgroundColor: backgroundColor, // Blue 900
         body: const Center(
           child: Board(
             imageIdx: 0,
             puzzleSize: 600,
             difficulty: 6,
+            backgroundColor: backgroundColor,
           ),
         ),
       ),

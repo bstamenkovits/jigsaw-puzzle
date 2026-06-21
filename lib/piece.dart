@@ -83,7 +83,7 @@ class Piece extends StatelessWidget {
         height: data.height,
         clipBehavior: Clip.hardEdge,
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.white24, width: 0.5),
+          // border: Border.all(color: Colors.white24, width: 0.5),5
         ),
         child: Stack(
           children: [
