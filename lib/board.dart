@@ -24,26 +24,29 @@ class _BoardState extends State<Board> {
   Widget build(BuildContext context) {
     final allPieces = clusters.expand((c) => c).toList();
 
-    return InteractiveViewer(
-      minScale: 0.5,
-      maxScale: 2.0,
-      boundaryMargin: const EdgeInsets.all(1000),
-      child: Container(
-        width: 2000,
-        height: 2000,
-        color: Colors.black,
-        child: Stack(
-          children: allPieces.map((data) {
-            return Positioned(
-              left: data.position.dx,
-              top: data.position.dy,
-              child: Piece(
-                data: data,
-                onDrag: (delta) => _handleDrag(data, delta),
-                onDragEnd: () => _handleDragEnd(data),
-              ),
-            );
-          }).toList(),
+    return Container(
+      color: Colors.blue[900], // Board widget background
+      child: InteractiveViewer(
+        minScale: 0.5,
+        maxScale: 2.0,
+        boundaryMargin: const EdgeInsets.all(1000),
+        child: Container(
+          width: 2000,
+          height: 2000,
+          color: Colors.green[900], // Canvas/Stack background
+          child: Stack(
+            children: allPieces.map((data) {
+              return Positioned(
+                left: data.position.dx,
+                top: data.position.dy,
+                child: Piece(
+                  data: data,
+                  onDrag: (delta) => _handleDrag(data, delta),
+                  onDragEnd: () => _handleDragEnd(data),
+                ),
+              );
+            }).toList(),
+          ),
         ),
       ),
     );
@@ -123,28 +126,28 @@ class _BoardState extends State<Board> {
     if (_snapOperation(
         a.leftAnchor, b.rightAnchor,
         clusterA, clusterB,
-        b.position + const Offset(PieceData.size, 0) - a.position)
+        b.position + Offset(b.width, 0) - a.position)
     ) { return true; }
-    
+
     // A-Right to B-Left
     if (_snapOperation(
         a.rightAnchor, b.leftAnchor,
         clusterA, clusterB,
-        b.position - const Offset(PieceData.size, 0) - a.position)
-    ) { return true;}
+        b.position - Offset(a.width, 0) - a.position)
+    ) { return true; }
 
     // A-Top to B-Bottom
     if (_snapOperation(
         a.topAnchor, b.bottomAnchor,
         clusterA, clusterB,
-        b.position + const Offset(0, PieceData.size) - a.position)
+        b.position + Offset(0, b.height) - a.position)
     ) { return true; }
 
     // A-Bottom to B-Top
     if (_snapOperation(
         a.bottomAnchor, b.topAnchor,
         clusterA, clusterB,
-        b.position - const Offset(0, PieceData.size) - a.position)
+        b.position - Offset(0, a.height) - a.position)
     ) { return true; }
 
     return false;
