@@ -17,8 +17,9 @@ class MyApp extends StatelessWidget {
         backgroundColor: Colors.blue[900], // App background
         body: const Center(
           child: Board(
-            nPiecesWidth: 3,
-            nPiecesHeight: 3,
+            imageIdx: 0,
+            puzzleSize: 600,
+            difficulty: 6,
           ),
         ),
       ),

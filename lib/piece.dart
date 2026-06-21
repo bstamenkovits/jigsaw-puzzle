@@ -43,6 +43,13 @@ class Piece extends StatelessWidget {
   /// The data associated with this piece.
   final PieceData data;
 
+  /// Total dimensions of the puzzle.
+  final double puzzleWidth;
+  final double puzzleHeight;
+
+  /// The path to the image for the puzzle.
+  final String imagePath;
+
   /// Callback when the piece is dragged.
   final Function(Offset delta) onDrag;
 
@@ -55,6 +62,9 @@ class Piece extends StatelessWidget {
   const Piece({
     super.key,
     required this.data,
+    required this.puzzleWidth,
+    required this.puzzleHeight,
+    required this.imagePath,
     required this.onDrag,
     required this.onDragEnd,
     required this.onDoubleTap,
@@ -63,8 +73,6 @@ class Piece extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      /// when user performs a pan input, call the onDrag method
-      /// (method defined at class instantiation)
       onPanUpdate: (details) => onDrag(details.delta),
       onPanEnd: (_) => onDragEnd(),
       onDoubleTap: onDoubleTap,
@@ -73,9 +81,23 @@ class Piece extends StatelessWidget {
       child: Container(
         width: data.width,
         height: data.height,
-        color: Colors.grey,
-        child: Center(
-          child: Text(data.id),
+        clipBehavior: Clip.hardEdge,
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.white24, width: 0.5),
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              left: -data.gridX * data.width,
+              top: -data.gridY * data.height,
+              child: Image.asset(
+                imagePath,
+                width: puzzleWidth,
+                height: puzzleHeight,
+                fit: BoxFit.fill,
+              ),
+            ),
+          ],
         ),
       ),
     );

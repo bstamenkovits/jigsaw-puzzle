@@ -3,12 +3,15 @@ import 'piece.dart';
 import 'puzzle_engine.dart';
 
 class Board extends StatefulWidget {
-  final int nPiecesWidth;
-  final int nPiecesHeight;
+  final int imageIdx;
+  final int puzzleSize;
+  final int difficulty;
+
   const Board({
     super.key,
-    this.nPiecesWidth = 2,
-    this.nPiecesHeight = 2,
+    this.imageIdx = 0,
+    this.puzzleSize = 600,
+    this.difficulty = 3,
   });
 
   @override
@@ -17,24 +20,65 @@ class Board extends StatefulWidget {
 
 class _BoardState extends State<Board> {
   /// Each list inside this list represents a "Cluster" of snapped pieces.
-  late final List<List<PieceData>> clusters;
+  List<List<PieceData>>? clusters;
+  String? _imagePath;
+  double? _puzzleWidth;
+  double? _puzzleHeight;
+  int? _nPiecesWidth;
+  int? _nPiecesHeight;
 
   @override
   void initState() {
     super.initState();
-    clusters = [];
-    for (int i = 0; i < widget.nPiecesHeight; i++) {
-      for (int j = 0; j < widget.nPiecesWidth; j++) {
-        clusters.add([
-          PieceData(
-            id: "piece_${i * widget.nPiecesWidth + j + 1}",
-            gridX: j,
-            gridY: i,
-            position: Offset(1000.0 + j * 200.0, 1000.0 + i * 150.0),
-          )
-        ]);
+    _initializePuzzle();
+  }
+
+  void _initializePuzzle() {
+    final imagePath = 'assets/pictures/image${widget.imageIdx}.jpg';
+    _imagePath = imagePath;
+
+    final ImageStream stream = AssetImage(imagePath).resolve(const ImageConfiguration());
+    stream.addListener(ImageStreamListener((ImageInfo info, bool _) {
+      if (!mounted) return;
+
+      final int width = info.image.width;
+      final int height = info.image.height;
+      final double aspectRatio = height / width;
+
+      final puzzleWidth = widget.puzzleSize.toDouble();
+      final puzzleHeight = widget.puzzleSize * aspectRatio;
+
+      final nPiecesWidth = widget.difficulty;
+      final nPiecesHeight = (widget.difficulty * aspectRatio).round();
+
+      final pieceWidth = puzzleWidth / nPiecesWidth;
+      final pieceHeight = puzzleHeight / nPiecesHeight;
+
+      final List<List<PieceData>> newClusters = [];
+      for (int i = 0; i < nPiecesHeight; i++) {
+        for (int j = 0; j < nPiecesWidth; j++) {
+          newClusters.add([
+            PieceData(
+              id: "piece_${i * nPiecesWidth + j + 1}",
+              gridX: j,
+              gridY: i,
+              width: pieceWidth,
+              height: pieceHeight,
+              // Scatter them a bit initially
+              position: Offset(1000.0 + j * (pieceWidth + 20), 1000.0 + i * (pieceHeight + 20)),
+            )
+          ]);
+        }
       }
-    }
+
+      setState(() {
+        _puzzleWidth = puzzleWidth;
+        _puzzleHeight = puzzleHeight;
+        _nPiecesWidth = nPiecesWidth;
+        _nPiecesHeight = nPiecesHeight;
+        clusters = newClusters;
+      });
+    }));
   }
 
   /// Needed for "infinite canvas"
@@ -54,7 +98,10 @@ class _BoardState extends State<Board> {
 
   @override
   Widget build(BuildContext context) {
-    final allPieces = clusters.expand((c) => c).toList();
+    if (clusters == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    final allPieces = clusters!.expand((c) => c).toList();
 
     // 1. Calculate the bounding box of all pieces
     double minX = double.infinity;
@@ -119,6 +166,9 @@ class _BoardState extends State<Board> {
                 top: data.position.dy - minY + buffer,
                 child: Piece(
                   data: data,
+                  puzzleWidth: _puzzleWidth!,
+                  puzzleHeight: _puzzleHeight!,
+                  imagePath: _imagePath!,
                   onDrag: (delta) => _handleDrag(data, delta),
                   onDragEnd: () => _handleDragEnd(data),
                   onDoubleTap: () => _handleDoubleTap(data),
@@ -133,26 +183,26 @@ class _BoardState extends State<Board> {
 
   void _handleDoubleTap(PieceData piece) {
     setState(() {
-      final oldCluster = clusters.firstWhere((c) => c.contains(piece));
+      final oldCluster = clusters!.firstWhere((c) => c.contains(piece));
       oldCluster.remove(piece);
 
       // Move the separated piece away slightly (20px) to prevent immediate re-snap
       piece.position += const Offset(20, 20);
-      clusters.add([piece]);
+      clusters!.add([piece]);
 
       if (oldCluster.isEmpty) {
-        clusters.remove(oldCluster);
+        clusters!.remove(oldCluster);
       } else {
         final newSubClusters = PuzzleEngine.generateNewClusters(oldCluster);
-        clusters.remove(oldCluster);
-        clusters.addAll(newSubClusters);
+        clusters!.remove(oldCluster);
+        clusters!.addAll(newSubClusters);
       }
     });
   }
 
   void _handleDrag(PieceData draggedPiece, Offset delta) {
     setState(() {
-      final movingCluster = clusters.firstWhere((c) => c.contains(draggedPiece));
+      final movingCluster = clusters!.firstWhere((c) => c.contains(draggedPiece));
       for (var piece in movingCluster) {
         piece.position += delta;
       }
@@ -161,11 +211,11 @@ class _BoardState extends State<Board> {
 
   void _handleDragEnd(PieceData draggedPiece) {
     setState(() {
-      final movingCluster = clusters.firstWhere((c) => c.contains(draggedPiece));
+      final movingCluster = clusters!.firstWhere((c) => c.contains(draggedPiece));
 
-      PuzzleEngine.handleSnapping(movingCluster, clusters);
+      PuzzleEngine.handleSnapping(movingCluster, clusters!);
 
-      if (PuzzleEngine.isPuzzleComplete(movingCluster, widget.nPiecesWidth, widget.nPiecesHeight)) {
+      if (PuzzleEngine.isPuzzleComplete(movingCluster, _nPiecesWidth!, _nPiecesHeight!)) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Puzzle Complete!")),
         );
