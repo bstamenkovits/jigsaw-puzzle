@@ -14,7 +14,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       home: Scaffold(
-        backgroundColor: Colors.red[900], // App background
+        backgroundColor: Colors.blue[900], // App background
         body: const Center(
           child: Board(),
         ),
