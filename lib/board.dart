@@ -18,8 +18,9 @@ class _BoardState extends State<Board> {
   ];
 
   /// Distance within which two pieces/clusters snap together
-  static const double snapThreshold = 10.0;
+  static const double snapThreshold = 20.0;
 
+  /// Needed for "infinite canvas"
   final TransformationController _transformationController = TransformationController();
 
   /// We track the previous minX and minY to adjust the transformation controller
