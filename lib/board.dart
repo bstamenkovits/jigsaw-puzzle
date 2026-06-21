@@ -103,6 +103,7 @@ class _BoardState extends State<Board> {
                   data: data,
                   onDrag: (delta) => _handleDrag(data, delta),
                   onDragEnd: () => _handleDragEnd(data),
+                  onDoubleTap: () => _handleDoubleTap(data),
                 ),
               );
             }).toList(),
@@ -112,15 +113,88 @@ class _BoardState extends State<Board> {
     );
   }
 
+  /// A method to handle double tapping:
+  ///   - remove the piece from its cluster
+  ///   - split the remaining cluster if it becomes disconnected
+  ///   - move the piece away slightly
+  void _handleDoubleTap(PieceData piece) {
+    setState(() {
+      final oldCluster = clusters.firstWhere((c) => c.contains(piece));
+      oldCluster.remove(piece);
+
+      // 1. Move the separated piece away slightly (20px) to prevent immediate re-snap
+      piece.position += const Offset(20, 20);
+      clusters.add([piece]);
+
+      // 2. Create new clusters if old cluster is no longer a continuous set of pieces
+      if (oldCluster.isEmpty) {
+        clusters.remove(oldCluster);
+      } else {
+        final newSubClusters = _generateNewClusters(oldCluster);
+        clusters.remove(oldCluster);
+        clusters.addAll(newSubClusters);
+      }
+    });
+  }
+
+  /// given a list of pieces, it groups them into clusters 
+  /// Returns a list of clusters
+  List<List<PieceData>> _generateNewClusters(List<PieceData> pieces) {
+    List<List<PieceData>> clusters = [];
+    // keep track of visited pieces, once they have been added to a cluster,
+    // they cannot be added to another cluster
+    Set<PieceData> visited = {};
+
+    for (var p in pieces) {
+      if (!visited.contains(p)) {
+        clusters.add(_generateCluster(p, pieces, visited));
+      }
+    }
+    return clusters;
+  }
+  
+  /// Implements a Breadth-First Search algorithm to find all connected pieces.
+  /// Returns a new list containing all pieces in the discovered cluster.
+  List<PieceData> _generateCluster(PieceData start, List<PieceData> allPieces, Set<PieceData> visited) {
+    List<PieceData> cluster = [];
+    List<PieceData> queue = [start];
+    visited.add(start);
+
+    while (queue.isNotEmpty) {
+      final current = queue.removeAt(0);
+      cluster.add(current);
+      
+      // add all pieces connected to current piece to queue
+      for (var other in allPieces) {
+        if (!visited.contains(other) && _areConnected(current, other)) {
+          visited.add(other);  // update list `visited` in outer scope
+          queue.add(other);
+        }
+      }
+    }
+    return cluster;
+  }
+
+  /// Checks if two pieces are connected (very close to each other)
+  bool _areConnected(PieceData a, PieceData b) {
+    // small threshold since pieces should be exactly aligned if "connected"
+    const double connectionThreshold = 2.0;
+
+    return (a.leftAnchor - b.rightAnchor).distance < connectionThreshold ||
+           (a.rightAnchor - b.leftAnchor).distance < connectionThreshold ||
+           (a.topAnchor - b.bottomAnchor).distance < connectionThreshold ||
+           (a.bottomAnchor - b.topAnchor).distance < connectionThreshold;
+  }
+
   /// A method to handle dragging:
   ///   - update the position of the moving cluster
   ///   - redraw moving piece at new position
   void _handleDrag(PieceData draggedPiece, Offset delta) {
     setState(() {
-      /// Identify which cluster the draggedPiece belongs to
+      // Identify which cluster the draggedPiece belongs to
       final movingCluster = clusters.firstWhere((c) => c.contains(draggedPiece));
 
-      /// Update the position of each piece in the cluster
+      // Update the position of each piece in the cluster
       for (var piece in movingCluster) {
         piece.position += delta;
       }
@@ -134,10 +208,10 @@ class _BoardState extends State<Board> {
   ///   - redraw pieces to screen with updated position
   void _handleDragEnd(PieceData draggedPiece) {
     setState(() {
-      /// Identify which cluster the draggedPiece belongs to
+      // Identify which cluster the draggedPiece belongs to
       final movingCluster = clusters.firstWhere((c) => c.contains(draggedPiece));
 
-      /// Apply snapping logic
+      // Apply snapping logic
       _handleSnapping(movingCluster);
     });
   }
@@ -145,14 +219,14 @@ class _BoardState extends State<Board> {
 
   /// Given the moving cluster being dragged, try to snap it to another cluster
   void _handleSnapping(List<PieceData> movingCluster) {
-    /// Loop over all clusters
+    // Loop over all clusters
     for (var otherCluster in List.from(clusters)) {
       if (otherCluster == movingCluster) continue; // skip check with self
 
-      /// Compare every piece from the moving cluster with the other cluster
+      // Compare every piece from the moving cluster with the other cluster
       for (var movingPiece in movingCluster) {
         for (var otherPiece in otherCluster) {
-          /// Stop after snapping has occurred
+          // Stop after snapping has occurred
           if (_trySnap(movingPiece, otherPiece, movingCluster, otherCluster)) {
             return;
           }

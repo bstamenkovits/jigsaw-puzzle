@@ -36,11 +36,15 @@ class Piece extends StatelessWidget {
   /// Callback when the drag ends.
   final VoidCallback onDragEnd;
 
+  /// Callback when the piece is double tapped.
+  final VoidCallback onDoubleTap;
+
   const Piece({
     super.key,
     required this.data,
     required this.onDrag,
     required this.onDragEnd,
+    required this.onDoubleTap,
   });
 
   @override
@@ -50,6 +54,7 @@ class Piece extends StatelessWidget {
       /// (method defined at class instantiation)
       onPanUpdate: (details) => onDrag(details.delta),
       onPanEnd: (_) => onDragEnd(),
+      onDoubleTap: onDoubleTap,
 
       /// Visual representation of puzzle piece
       child: Container(
