@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 class PieceData {
   /// Unique identifier for the piece.
   final String id;
+  /// Grid coordinates
+  final int gridX;
+  final int gridY;
   /// Current position of the piece on the board.
   Offset position;
   /// Piece dimensions
@@ -12,6 +15,8 @@ class PieceData {
 
   PieceData({
     required this.id,
+    required this.gridX,
+    required this.gridY,
     this.position = Offset.zero,
     this.width = 80.0,
     this.height = 120.0,
@@ -22,6 +27,14 @@ class PieceData {
   Offset get bottomAnchor => position + Offset(width / 2, height);
   Offset get leftAnchor => position + Offset(0, height / 2);
   Offset get rightAnchor => position + Offset(width, height / 2);
+
+  /// Checks if two pieces are connected (very close to each other)
+  bool isConnectedTo(PieceData other, {double connectionThreshold = 2.0}) {
+    return (leftAnchor - other.rightAnchor).distance < connectionThreshold ||
+           (rightAnchor - other.leftAnchor).distance < connectionThreshold ||
+           (topAnchor - other.bottomAnchor).distance < connectionThreshold ||
+           (bottomAnchor - other.topAnchor).distance < connectionThreshold;
+  }
 }
 
 

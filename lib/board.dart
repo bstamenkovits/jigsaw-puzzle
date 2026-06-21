@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'piece.dart';
+import 'puzzle_engine.dart';
 
 class Board extends StatefulWidget {
   final int nPiecesWidth;
@@ -27,15 +28,14 @@ class _BoardState extends State<Board> {
         clusters.add([
           PieceData(
             id: "piece_${i * widget.nPiecesWidth + j + 1}",
+            gridX: j,
+            gridY: i,
             position: Offset(1000.0 + j * 200.0, 1000.0 + i * 150.0),
           )
         ]);
       }
     }
   }
-
-  /// Distance within which two pieces/clusters snap together
-  static const double snapThreshold = 20.0;
 
   /// Needed for "infinite canvas"
   final TransformationController _transformationController = TransformationController();
@@ -131,227 +131,45 @@ class _BoardState extends State<Board> {
     );
   }
 
-  /// A method to handle double tapping:
-  ///   - remove the piece from its cluster
-  ///   - split the remaining cluster if it becomes disconnected
-  ///   - move the piece away slightly
   void _handleDoubleTap(PieceData piece) {
     setState(() {
       final oldCluster = clusters.firstWhere((c) => c.contains(piece));
       oldCluster.remove(piece);
 
-      // 1. Move the separated piece away slightly (20px) to prevent immediate re-snap
+      // Move the separated piece away slightly (20px) to prevent immediate re-snap
       piece.position += const Offset(20, 20);
       clusters.add([piece]);
 
-      // 2. Create new clusters if old cluster is no longer a continuous set of pieces
       if (oldCluster.isEmpty) {
         clusters.remove(oldCluster);
       } else {
-        final newSubClusters = _generateNewClusters(oldCluster);
+        final newSubClusters = PuzzleEngine.generateNewClusters(oldCluster);
         clusters.remove(oldCluster);
         clusters.addAll(newSubClusters);
       }
     });
   }
 
-  /// given a list of pieces, it groups them into clusters 
-  /// Returns a list of clusters
-  List<List<PieceData>> _generateNewClusters(List<PieceData> pieces) {
-    List<List<PieceData>> clusters = [];
-    // keep track of visited pieces, once they have been added to a cluster,
-    // they cannot be added to another cluster
-    Set<PieceData> visited = {};
-
-    for (var p in pieces) {
-      if (!visited.contains(p)) {
-        clusters.add(_generateCluster(p, pieces, visited));
-      }
-    }
-    return clusters;
-  }
-  
-  /// Implements a Breadth-First Search algorithm to find all connected pieces.
-  /// Returns a new list containing all pieces in the discovered cluster.
-  List<PieceData> _generateCluster(PieceData start, List<PieceData> allPieces, Set<PieceData> visited) {
-    List<PieceData> cluster = [];
-    List<PieceData> queue = [start];
-    visited.add(start);
-
-    while (queue.isNotEmpty) {
-      final current = queue.removeAt(0);
-      cluster.add(current);
-      
-      // add all pieces connected to current piece to queue
-      for (var other in allPieces) {
-        if (!visited.contains(other) && _areConnected(current, other)) {
-          visited.add(other);  // update list `visited` in outer scope
-          queue.add(other);
-        }
-      }
-    }
-    return cluster;
-  }
-
-  /// Checks if two pieces are connected (very close to each other)
-  bool _areConnected(PieceData a, PieceData b) {
-    // small threshold since pieces should be exactly aligned if "connected"
-    const double connectionThreshold = 2.0;
-
-    return (a.leftAnchor - b.rightAnchor).distance < connectionThreshold ||
-           (a.rightAnchor - b.leftAnchor).distance < connectionThreshold ||
-           (a.topAnchor - b.bottomAnchor).distance < connectionThreshold ||
-           (a.bottomAnchor - b.topAnchor).distance < connectionThreshold;
-  }
-
-  /// A method to handle dragging:
-  ///   - update the position of the moving cluster
-  ///   - redraw moving piece at new position
   void _handleDrag(PieceData draggedPiece, Offset delta) {
     setState(() {
-      // Identify which cluster the draggedPiece belongs to
       final movingCluster = clusters.firstWhere((c) => c.contains(draggedPiece));
-
-      // Update the position of each piece in the cluster
       for (var piece in movingCluster) {
         piece.position += delta;
       }
     });
   }
 
-
-  /// A method to handle snapping:
-  ///   - change position of moving cluster to snapping anchor
-  ///   - absorb moving cluster into stationary cluster
-  ///   - redraw pieces to screen with updated position
   void _handleDragEnd(PieceData draggedPiece) {
     setState(() {
-      // Identify which cluster the draggedPiece belongs to
       final movingCluster = clusters.firstWhere((c) => c.contains(draggedPiece));
 
-      // Apply snapping logic
-      _handleSnapping(movingCluster);
+      PuzzleEngine.handleSnapping(movingCluster, clusters);
 
-      // Check if the puzzle is complete
-      if (_isPuzzleComplete(movingCluster)) {
+      if (PuzzleEngine.isPuzzleComplete(movingCluster, widget.nPiecesWidth, widget.nPiecesHeight)) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Puzzle Complete!")),
         );
       }
     });
-  }
-
-  /// Checks if the given cluster represents a completed puzzle.
-  ///
-  /// Given a cluster, the method takes the first piece in the cluster, and then
-  /// computes the expected position of every other piece relative to itself.
-  ///
-  /// The expected position can be determined by the index (idx) of each piece
-  /// as the idx is assigned to a piece in the constructor of Board based on the
-  /// number of pieces in the width and length of the puzzle.
-  ///
-  /// Returns `true` if all pieces are in their correct position relative to
-  /// each other.
-  bool _isPuzzleComplete(List<PieceData> cluster) {
-    if (cluster.length != widget.nPiecesWidth * widget.nPiecesHeight) {
-      return false;
-    }
-
-    // Pick the first piece to establish the expected "puzzle origin"
-    final firstPiece = cluster.first;
-    final firstIdx = int.parse(firstPiece.id.split('_').last) - 1;
-    final firstGridX = firstIdx % widget.nPiecesWidth;
-    final firstGridY = firstIdx ~/ widget.nPiecesWidth;
-
-    final puzzleOrigin = firstPiece.position -
-        Offset(firstGridX * firstPiece.width, firstGridY * firstPiece.height);
-
-    // Verify each piece in the cluster is in its correct grid position relative to the origin
-    for (var piece in cluster) {
-      final idx = int.parse(piece.id.split('_').last) - 1;
-      final gridX = idx % widget.nPiecesWidth;
-      final gridY = idx ~/ widget.nPiecesWidth;
-
-      final expectedPosition = puzzleOrigin +
-          Offset(gridX * piece.width, gridY * piece.height);
-
-      // We allow a small epsilon for floating point comparison
-      if ((piece.position - expectedPosition).distance > 1.0) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-
-  /// Given the moving cluster being dragged, try to snap it to another cluster
-  void _handleSnapping(List<PieceData> movingCluster) {
-    // Loop over all clusters
-    for (var otherCluster in List.from(clusters)) {
-      if (otherCluster == movingCluster) continue; // skip check with self
-
-      // Compare every piece from the moving cluster with the other cluster
-      for (var movingPiece in movingCluster) {
-        for (var otherPiece in otherCluster) {
-          // Stop after snapping has occurred
-          if (_trySnap(movingPiece, otherPiece, movingCluster, otherCluster)) {
-            return;
-          }
-        }
-      }
-    }
-  }
-
-  /// Given two pieces try to snap their corresponding clusters to each other
-  bool _trySnap(PieceData a, PieceData b, List<PieceData> clusterA, List<PieceData> clusterB) {
-    // A-Left to B-Right
-    if (_snapOperation(
-        a.leftAnchor, b.rightAnchor,
-        clusterA, clusterB,
-        b.position + Offset(b.width, 0) - a.position)
-    ) { return true; }
-
-    // A-Right to B-Left
-    if (_snapOperation(
-        a.rightAnchor, b.leftAnchor,
-        clusterA, clusterB,
-        b.position - Offset(a.width, 0) - a.position)
-    ) { return true; }
-
-    // A-Top to B-Bottom
-    if (_snapOperation(
-        a.topAnchor, b.bottomAnchor,
-        clusterA, clusterB,
-        b.position + Offset(0, b.height) - a.position)
-    ) { return true; }
-
-    // A-Bottom to B-Top
-    if (_snapOperation(
-        a.bottomAnchor, b.topAnchor,
-        clusterA, clusterB,
-        b.position - Offset(0, a.height) - a.position)
-    ) { return true; }
-
-    return false;
-  }
-
-  /// Given two anchors belonging to different clusters (A and B), snap the two
-  /// clusters together if the anchors are close enough to one-another.
-  bool _snapOperation(Offset anchorA, Offset anchorB, List<PieceData> clusterA, List<PieceData> clusterB, Offset delta) {
-    // Check if two edges are (almost) touching
-    if ((anchorA - anchorB).distance < snapThreshold) {
-
-      // Update the position of all pieces in Cluster A
-      for (var piece in clusterA) {
-        piece.position += delta;
-      }
-
-      // Absorb clusterA into ClusterB
-      clusterB.addAll(clusterA);
-      clusters.remove(clusterA);
-      return true;
-    }
-    return false;
   }
 }
