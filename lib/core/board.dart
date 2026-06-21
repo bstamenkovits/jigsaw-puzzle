@@ -2,7 +2,8 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'piece.dart';
-import 'puzzle_engine.dart';
+import './puzzle_engine.dart';
+import '../style.dart';
 
 class Board extends StatefulWidget {
   final int imageIdx;
@@ -15,7 +16,7 @@ class Board extends StatefulWidget {
     this.imageIdx = 0,
     this.puzzleSize = 600,
     this.difficulty = 3,
-    this.backgroundColor = const Color(0xFF242424), // grey
+    this.backgroundColor = AppStyle.background,
   });
 
   @override
@@ -222,36 +223,33 @@ class _BoardState extends State<Board> {
         ),
         if (_isComplete)
           Positioned(
-            bottom: 32,
-            left: 0,
-            right: 0,
+            bottom: 40,
+            left: 20,
+            right: 20,
             child: Center(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.7),
-                  borderRadius: BorderRadius.circular(30),
-                  border: Border.all(color: Colors.white24),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppStyle.paddingLarge,
+                  vertical: AppStyle.paddingMedium,
                 ),
+                decoration: AppStyle.cardDecoration,
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.check_circle, color: Colors.greenAccent),
-                    const SizedBox(width: 12),
-                    const Text(
-                      "Puzzle Complete!",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text(
-                        "Back to Home",
-                        style: TextStyle(color: Colors.blueAccent),
+                    const Icon(Icons.check_circle_rounded, color: AppStyle.success, size: 28),
+                    const SizedBox(width: 16),
+                    const Text("Puzzle Complete!", style: AppStyle.heading),
+                    const SizedBox(width: 24),
+                    InkWell(
+                      onTap: () => Navigator.of(context).pop(),
+                      borderRadius: BorderRadius.circular(AppStyle.borderRadius),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: AppStyle.accent,
+                          borderRadius: BorderRadius.circular(AppStyle.borderRadius),
+                        ),
+                        child: const Text("HOME", style: AppStyle.buttonLabel),
                       ),
                     ),
                   ],

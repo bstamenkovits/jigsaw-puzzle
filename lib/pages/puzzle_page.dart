@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'board.dart';
+import '../core/board.dart';
+import '../style.dart';
 
 class PuzzlePage extends StatelessWidget {
   final int imageIdx;
@@ -13,14 +14,13 @@ class PuzzlePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const backgroundColor = Color(0xFF1c1c1c);
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: AppStyle.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppStyle.textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -29,9 +29,10 @@ class PuzzlePage extends StatelessWidget {
           imageIdx: imageIdx,
           puzzleSize: 600,
           difficulty: difficulty,
-          backgroundColor: backgroundColor,
+          backgroundColor: AppStyle.background,
         ),
       ),
     );
   }
 }
+
